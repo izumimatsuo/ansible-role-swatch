@@ -1,0 +1,53 @@
+---
+# tasks file for ansible-role-swatch
+- name: install epel repository
+  yum:
+    name: epel-release
+  tags: swatch
+
+- name: install swatch package
+  yum:
+    name:
+      - swatch
+  tags: swatch
+
+- name: create swatch conf directory
+  file:
+    path: /etc/swatch
+    state: directory
+    mode: '0755'
+  tags: swatch
+
+- name: copy sample conf
+  template:
+    src: sample.conf.j2
+    dest: /etc/swatch/sample.conf
+    mode: 0644
+  notify: restart swatchd service
+  tags: swatch
+
+- name: copy swatchctl
+  template:
+    src: swatchctl.j2
+    dest: /usr/local/bin/swatchctl
+    mode: 0755
+  notify: restart swatchd service
+  tags: swatch
+
+- name: copy swatchd service file
+  template:
+    src: swatchd.service.j2
+    dest: /usr/lib/systemd/system/swatchd.service
+    mode: 0644
+  tags: swatch
+
+- name: daemon reload
+  systemd: daemon_reload=yes
+  tags: swatch
+
+- name: start swatch service
+  service:
+    name: swatchd
+    state: started
+    enabled: yes
+  tags: swatch

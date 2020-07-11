@@ -1,0 +1,7 @@
+---
+# handlers file for ansible-role-swatch
+- name: restart swatchd service
+  service:
+    name: swatchd
+    state: restarted
+  tags: swatch

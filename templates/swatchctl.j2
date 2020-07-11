@@ -1,0 +1,64 @@
+#!/bin/bash
+#
+# swatch ctl
+#
+# description: swatch start/stop script
+
+PATH=/sbin:/usr/local/bin:/bin:/usr/bin
+
+mkdir -p /var/log/swatch
+
+start() {
+     # Start daemons.
+     ls /var/run/swatch_*.pid > /dev/null 2>&1
+     if [ $? -ne 0 ]; then
+          echo -n "Starting swatch"
+          pno=0
+          for conf in /etc/swatch/*.conf
+          do
+               pno=`expr $pno + 1`
+               WATCHLOG=`grep "^# logfile" $conf | awk '{ print $3 }'`
+               swatch --config-file $conf --tail-file $WATCHLOG \
+               --script-dir=/tmp --daemon --pid-file /var/run/swatch_$pno.pid \
+               >> /var/log/swatch/swatch.log 2>&1
+               RETVAL=$?
+               [ $RETVAL != 0 ] && return $RETVAL
+          done
+          echo
+          [ $RETVAL = 0 ] && touch /var/lock/subsys/swatch
+          return $RETVAL
+     else
+          echo "swatch is already started"
+     fi
+}
+
+stop() {
+     # Stop daemons.
+     ls /var/run/swatch_*.pid > /dev/null 2>&1
+     if [ $? -eq 0 ]; then
+          echo -n "Shutting down swatch"
+          for pid in /var/run/swatch_*.pid
+          do
+               kill $(cat $pid)
+               rm -f $pid
+          done
+          echo
+          rm -f /var/lock/subsys/swatch /tmp/.swatch_script.*
+     else
+          echo "swatch is not running"
+     fi
+}
+
+case "$1" in
+     start)
+             start
+             ;;
+     stop)
+             stop
+             ;;
+     *)
+          echo "Usage: swatch {start|stop}"
+          exit 1
+esac
+
+exit $RETVAL
